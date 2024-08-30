@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: book-catalog-deployment
+  labels:
+    app: book-catalog
+spec:
+  replicas: 3  # Number of pod replicas
+  selector:
+    matchLabels:
+      app: book-catalog
+  template:
+    metadata:
+      labels:
+        app: book-catalog
+    spec:
+      containers:
+      - name: book-catalog-container
+        image: <your-dockerhub-username>/book-catalog:latest  # Docker image name
+        ports:
+        - containerPort: 8000  # The port that the container listens on
+        env:
+        - name: DATABASE_URL  # Environment variable for the database connection
+          value: "postgresql://user:password@hostname:5432/database"  # Replace with your actual connection string
+        resources:  # Resource limits and requests
+          requests:
+            memory: "128Mi"
+            cpu: "250m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        livenessProbe:  # Optional: Liveness probe to check if the app is running
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:  # Optional: Readiness probe to check if the app is ready to serve traffic
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: book-catalog-service
+spec:
+  selector:
+    app: book-catalog
+  ports:
+  - protocol: TCP
+    port: 80  # Port exposed by the service
+    targetPort: 8000  # Port where the container is listening
+  type: LoadBalancer  # Exposes the service externally with a load balancer
+
